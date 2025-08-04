@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KSEB Electricity Bill Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .result-card {
+            transition: all 0.3s ease-in-out;
+        }
+        input[readonly] {
+            background-color: #f3f4f6;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+    <div class="w-full max-w-2xl mx-auto bg-white rounded-2xl shadow-lg p-6 md:p-8">
+        <div class="text-center mb-6">
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-800">KSEB Electricity Bill Calculator</h1>
+            <p class="text-gray-500 mt-2">Estimate your monthly or bi-monthly electricity charges.</p>
+        </div>
+
+        <!-- Input Form -->
+        <div class="space-y-6 mb-6">
+            <!-- Calculation Method -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Calculate Bill From:</label>
+                <div class="flex items-center space-x-4 bg-gray-100 p-1 rounded-lg">
+                     <label class="flex-1 text-center">
+                        <input type="radio" name="calculationMethod" value="byUnits" class="sr-only" checked>
+                        <span class="method-span w-full block cursor-pointer py-2 px-4 rounded-md text-sm font-medium transition bg-white text-blue-600 shadow">Total Consumption</span>
+                    </label>
+                    <label class="flex-1 text-center">
+                        <input type="radio" name="calculationMethod" value="byReading" class="sr-only">
+                        <span class="method-span w-full block cursor-pointer py-2 px-4 rounded-md text-sm font-medium transition">Meter Reading</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Meter Reading Inputs (Initially Hidden) -->
+            <div id="meterReadingInputs" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="lastReading" class="block text-sm font-medium text-gray-700 mb-1">Last Meter Reading</label>
+                    <input type="number" id="lastReading" placeholder="e.g., 5400" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                </div>
+                <div>
+                    <label for="currentReading" class="block text-sm font-medium text-gray-700 mb-1">Current Meter Reading</label>
+                    <input type="number" id="currentReading" placeholder="e.g., 5750" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                </div>
+            </div>
+
+            <!-- Total Consumption Input -->
+            <div id="totalConsumptionInput">
+                <label for="units" class="block text-sm font-medium text-gray-700 mb-1">Total Consumption (Units)</label>
+                <input type="number" id="units" placeholder="Enter total units for the period" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+            </div>
+
+            <!-- Other Inputs -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 <div>
+                    <label for="billingCycle" class="block text-sm font-medium text-gray-700 mb-1">Billing Cycle</label>
+                    <select id="billingCycle" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                        <option value="2">Bi-Monthly (2 months)</option>
+                        <option value="1">Monthly (1 month)</option>
+                    </select>
+                </div>
+                 <div>
+                    <label for="phase" class="block text-sm font-medium text-gray-700 mb-1">Phase Type</label>
+                    <select id="phase" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                        <option value="single">Single Phase</option>
+                        <option value="three">Three Phase</option>
+                    </select>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Are you a BPL Category Consumer?</label>
+                    <div class="flex items-center space-x-4">
+                        <label class="flex items-center">
+                            <input type="radio" name="bpl" value="yes" class="form-radio h-4 w-4 text-blue-600">
+                            <span class="ml-2 text-gray-700">Yes</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="radio" name="bpl" value="no" class="form-radio h-4 w-4 text-blue-600" checked>
+                            <span class="ml-2 text-gray-700">No</span>
+                        </label>
+                    </div>
+                </div>
+                <div id="bpl-options" class="hidden md:col-span-2">
+                     <label for="load" class="block text-sm font-medium text-gray-700 mb-1">Connected Load (Watts)</label>
+                    <input type="number" id="load" placeholder="e.g., 900" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mb-6">
+            <button id="calculateBtn" class="w-full md:w-auto bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700 transition-transform transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">Calculate Bill</button>
+        </div>
+
+        <!-- Result Display -->
+        <div id="result" class="hidden mt-6">
+            <div class="result-card bg-gray-50 rounded-xl p-6 border border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4 text-center">Estimated Bill</h2>
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">Total Fixed Charge:</span>
+                        <span id="fixedCharge" class="font-bold text-lg text-gray-800"></span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">Total Energy Charge:</span>
+                        <span id="energyCharge" class="font-bold text-lg text-gray-800"></span>
+                    </div>
+                     <div class="flex justify-between items-center">
+                        <span class="text-gray-600">Fuel Surcharge:</span>
+                        <span id="fuelSurcharge" class="font-bold text-lg text-gray-800"></span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">Duty (10%):</span>
+                        <span id="dutyCharge" class="font-bold text-lg text-gray-800"></span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">Meter Rent:</span>
+                        <span id="meterRent" class="font-bold text-lg text-gray-800"></span>
+                    </div>
+                    <div id="fcSubsidyWrapper" class="flex justify-between items-center text-green-600">
+                        <span class="text-gray-600">FC Subsidy:</span>
+                        <span id="fcSubsidy" class="font-bold text-lg"></span>
+                    </div>
+                    <div id="ecSubsidyWrapper" class="flex justify-between items-center text-green-600">
+                        <span class="text-gray-600">EC Subsidy:</span>
+                        <span id="ecSubsidy" class="font-bold text-lg"></span>
+                    </div>
+                     <hr class="my-2 border-t border-gray-200">
+                    <div class="flex justify-between items-center text-xl">
+                        <span class="font-semibold text-gray-700">Total Amount Payable:</span>
+                        <span id="totalAmount" class="font-bold text-blue-600"></span>
+                    </div>
+                </div>
+                <!-- Detailed Calculation Section -->
+                <div id="calculationDetails" class="mt-4 pt-4 border-t border-gray-200"></div>
+                <p id="remarks" class="text-center text-sm text-gray-500 mt-4"></p>
+            </div>
+        </div>
+         <div id="error" class="hidden mt-4 text-center text-red-600 font-medium bg-red-100 p-3 rounded-lg"></div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const unitsInput = document.getElementById('units');
+        const phaseSelect = document.getElementById('phase');
+        const billingCycleSelect = document.getElementById('billingCycle');
+        const bplRadios = document.querySelectorAll('input[name="bpl"]');
+        const bplOptionsDiv = document.getElementById('bpl-options');
+        const loadInput = document.getElementById('load');
+        const calculateBtn = document.getElementById('calculateBtn');
+        const resultDiv = document.getElementById('result');
+        const errorDiv = document.getElementById('error');
+        const fixedChargeEl = document.getElementById('fixedCharge');
+        const energyChargeEl = document.getElementById('energyCharge');
+        const dutyChargeEl = document.getElementById('dutyCharge');
+        const meterRentEl = document.getElementById('meterRent');
+        const fuelSurchargeEl = document.getElementById('fuelSurcharge');
+        const fcSubsidyEl = document.getElementById('fcSubsidy');
+        const ecSubsidyEl = document.getElementById('ecSubsidy');
+        const fcSubsidyWrapper = document.getElementById('fcSubsidyWrapper');
+        const ecSubsidyWrapper = document.getElementById('ecSubsidyWrapper');
+        const totalAmountEl = document.getElementById('totalAmount');
+        const remarksEl = document.getElementById('remarks');
+        const calculationDetailsEl = document.getElementById('calculationDetails');
+        
+        const methodRadios = document.querySelectorAll('input[name="calculationMethod"]');
+        const methodSpans = document.querySelectorAll('.method-span');
+        const meterReadingInputsDiv = document.getElementById('meterReadingInputs');
+        const totalConsumptionInputDiv = document.getElementById('totalConsumptionInput');
+        const lastReadingInput = document.getElementById('lastReading');
+        const currentReadingInput = document.getElementById('currentReading');
+
+        // --- Event Listeners ---
+        bplRadios.forEach(radio => radio.addEventListener('change', () => bplOptionsDiv.classList.toggle('hidden', radio.value !== 'yes')));
+        methodRadios.forEach(radio => radio.addEventListener('change', toggleInputMethod));
+        [lastReadingInput, currentReadingInput].forEach(input => input.addEventListener('input', updateConsumptionFromReadings));
+        calculateBtn.addEventListener('click', calculateBill);
+
+        // --- Functions ---
+        function toggleInputMethod() {
+            const selectedMethod = document.querySelector('input[name="calculationMethod"]:checked').value;
+            methodSpans.forEach(span => {
+                const isSelected = span.previousElementSibling.value === selectedMethod;
+                span.classList.toggle('bg-white', isSelected);
+                span.classList.toggle('text-blue-600', isSelected);
+                span.classList.toggle('shadow', isSelected);
+            });
+            meterReadingInputsDiv.classList.toggle('hidden', selectedMethod !== 'byReading');
+            unitsInput.readOnly = selectedMethod === 'byReading';
+            if (selectedMethod === 'byReading') updateConsumptionFromReadings();
+        }
+
+        function updateConsumptionFromReadings() {
+            const lastReading = parseInt(lastReadingInput.value) || 0;
+            const currentReading = parseInt(currentReadingInput.value) || 0;
+            if (currentReading > 0 && lastReading > 0 && currentReading >= lastReading) {
+                unitsInput.value = currentReading - lastReading;
+                hideError();
+            } else if (currentReading > 0 && lastReading > 0 && currentReading < lastReading) {
+                unitsInput.value = '';
+                showError("Current reading must be greater than or equal to last reading.");
+            } else {
+                unitsInput.value = '';
+            }
+        }
+
+        function calculateBill() {
+            const totalUnits = parseInt(unitsInput.value);
+            const phase = phaseSelect.value;
+            const billingCycle = parseInt(billingCycleSelect.value);
+            const isBPL = document.querySelector('input[name="bpl"]:checked').value === 'yes';
+            const connectedLoad = parseInt(loadInput.value);
+
+            if (isNaN(totalUnits) || totalUnits < 0) {
+                showError("Please enter valid consumption details.");
+                return;
+            }
+            if (isBPL && (isNaN(connectedLoad) || connectedLoad <= 0)) {
+                showError("Please enter a valid connected load for BPL category.");
+                return;
+            }
+            hideError();
+            
+            const monthlyUnits = totalUnits / billingCycle;
+            let monthlyFixedCharge = 0, monthlyEnergyCharge = 0, totalFcSubsidy = 0, totalEcSubsidy = 0;
+            let remarks = "", calculationHtml = `<h3 class="text-md font-semibold text-gray-700 mb-2 text-center">Calculation Breakdown</h3>`;
+            calculationHtml += `<div class="text-sm text-gray-600 bg-gray-100 p-2 rounded-md mb-3"><div class="flex justify-between"><span>Average Monthly Units:</span><span class="font-medium">${totalUnits} units / ${billingCycle} months = ${monthlyUnits.toFixed(2)} units/month</span></div></div><div class="space-y-1 text-sm text-gray-600">`;
+
+            if (isBPL && connectedLoad <= 1000 && monthlyUnits <= 40) {
+                monthlyFixedCharge = 0;
+                monthlyEnergyCharge = monthlyUnits * 1.50;
+                remarks = "BPL subsidized rate applied.";
+                calculationHtml += `<div class="flex justify-between"><span>${monthlyUnits.toFixed(2)} units @ ₹1.50</span><span>₹${monthlyEnergyCharge.toFixed(2)}</span></div>`;
+            } else {
+                const fcSlabs = [
+                    { u: 50, s: 50, t: 130 }, { u: 100, s: 85, t: 175 }, { u: 150, s: 105, t: 205 },
+                    { u: 200, s: 140, t: 215 }, { u: 250, s: 160, t: 235 }, { u: 300, s: 220, t: 240 },
+                    { u: 350, s: 240, t: 250 }, { u: 400, s: 260, t: 260 }, { u: 500, s: 286, t: 285 },
+                    { u: Infinity, s: 310, t: 310 }
+                ];
+                for (const slab of fcSlabs) {
+                    if (monthlyUnits <= slab.u) {
+                        monthlyFixedCharge = (phase === 'single') ? slab.s : slab.t;
+                        break;
+                    }
+                }
+
+                if (monthlyUnits <= 250) {
+                    remarks = "Telescopic billing applied.";
+                    let remainingUnits = monthlyUnits, tempCharge = 0;
+                    const telescopicSlabs = [
+                        { limit: 50, rate: 3.35, label: "Slab 1 (0-50 units)" }, { limit: 50, rate: 4.25, label: "Slab 2 (51-100)" },
+                        { limit: 50, rate: 5.35, label: "Slab 3 (101-150)" }, { limit: 50, rate: 7.20, label: "Slab 4 (151-200)" },
+                        { limit: 50, rate: 8.50, label: "Slab 5 (201-250)" }
+                    ];
+                    for(const slab of telescopicSlabs) {
+                        if(remainingUnits > 0){
+                            let slabUnits = Math.min(remainingUnits, slab.limit);
+                            let slabCharge = slabUnits * slab.rate; tempCharge += slabCharge;
+                            calculationHtml += `<div class="flex justify-between"><span>${slab.label} @ ₹${slab.rate.toFixed(2)}</span><span>₹${slabCharge.toFixed(2)}</span></div>`;
+                            remainingUnits -= slabUnits;
+                        }
+                    }
+                    monthlyEnergyCharge = tempCharge;
+                } else {
+                    remarks = "Non-Telescopic billing applied.";
+                    const ntSlabs = [
+                        { u: 300, r: 6.75 }, { u: 350, r: 7.60 }, { u: 400, r: 7.95 },
+                        { u: 500, r: 8.25 }, { u: Infinity, r: 9.20 }
+                    ];
+                    for (const slab of ntSlabs) {
+                        if (monthlyUnits <= slab.u) {
+                            monthlyEnergyCharge = monthlyUnits * slab.r;
+                            calculationHtml += `<div class="flex justify-between"><span>All ${monthlyUnits.toFixed(2)} units @ ₹${slab.r.toFixed(2)}</span><span>₹${monthlyEnergyCharge.toFixed(2)}</span></div>`;
+                            break;
+                        }
+                    }
+                }
+
+                // Subsidy Calculation (based on total units for the period)
+                if (monthlyUnits <= 120) {
+                    totalFcSubsidy = (billingCycle === 2) ? 40 : 20;
+                    
+                    let tempEcSubsidy = 0;
+                    let subsidyUnits = totalUnits;
+                    let subsidyHtml = '<div class="mt-2 pt-2 border-t border-dashed">';
+                    
+                    if (subsidyUnits > 40) {
+                        let unitsInSlab = Math.min(subsidyUnits, 52) - 40;
+                        if (unitsInSlab > 0) {
+                           let slabSubsidy = unitsInSlab * 1.50; tempEcSubsidy += slabSubsidy;
+                           subsidyHtml += `<div class="flex justify-between text-green-700"><span>EC Subsidy (41-52 units)</span><span>- ₹${slabSubsidy.toFixed(2)}</span></div>`;
+                        }
+                    }
+                    if (subsidyUnits > 52) {
+                        let unitsInSlab = Math.min(subsidyUnits, 80) - 52;
+                        let slabSubsidy = unitsInSlab * 0.35; tempEcSubsidy += slabSubsidy;
+                        subsidyHtml += `<div class="flex justify-between text-green-700"><span>EC Subsidy (53-80 units)</span><span>- ₹${slabSubsidy.toFixed(2)}</span></div>`;
+                    }
+                    if (subsidyUnits > 80) {
+                        let unitsInSlab = Math.min(subsidyUnits, 240) - 80;
+                         if (unitsInSlab > 0) {
+                            let slabSubsidy = unitsInSlab * 0.50; tempEcSubsidy += slabSubsidy;
+                            subsidyHtml += `<div class="flex justify-between text-green-700"><span>EC Subsidy (81-${Math.min(subsidyUnits, 240)} units)</span><span>- ₹${slabSubsidy.toFixed(2)}</span></div>`;
+                        }
+                    }
+                    totalEcSubsidy = tempEcSubsidy;
+                    subsidyHtml += `<div class="flex justify-between text-green-700"><span>FC Subsidy</span><span>- ₹${totalFcSubsidy.toFixed(2)}</span></div></div>`;
+                    calculationHtml += subsidyHtml;
+                }
+            }
+            calculationHtml += '</div>';
+
+            const totalFixedCharge = monthlyFixedCharge * billingCycle;
+            const totalEnergyCharge = monthlyEnergyCharge * billingCycle;
+            const fuelSurcharge = totalUnits * 0.08;
+            const dutyCharge = totalEnergyCharge * 0.10;
+            const meterRent = 6 * billingCycle;
+            const totalAmount = totalFixedCharge + totalEnergyCharge + dutyCharge + meterRent + fuelSurcharge - totalFcSubsidy - totalEcSubsidy;
+
+            fixedChargeEl.textContent = `₹ ${totalFixedCharge.toFixed(2)}`;
+            energyChargeEl.textContent = `₹ ${totalEnergyCharge.toFixed(2)}`;
+            fuelSurchargeEl.textContent = `₹ ${fuelSurcharge.toFixed(2)}`;
+            dutyChargeEl.textContent = `₹ ${dutyCharge.toFixed(2)}`;
+            meterRentEl.textContent = `₹ ${meterRent.toFixed(2)}`;
+            
+            fcSubsidyWrapper.style.display = totalFcSubsidy > 0 ? 'flex' : 'none';
+            ecSubsidyWrapper.style.display = totalEcSubsidy > 0 ? 'flex' : 'none';
+            
+            fcSubsidyEl.textContent = `- ₹ ${totalFcSubsidy.toFixed(2)}`;
+            ecSubsidyEl.textContent = `- ₹ ${totalEcSubsidy.toFixed(2)}`;
+            
+            totalAmountEl.textContent = `₹ ${totalAmount.toFixed(2)}`;
+            remarksEl.textContent = remarks;
+            calculationDetailsEl.innerHTML = calculationHtml;
+            resultDiv.classList.remove('hidden');
+        }
+
+        function showError(message) {
+            errorDiv.textContent = message;
+            errorDiv.classList.remove('hidden');
+            resultDiv.classList.add('hidden');
+        }
+
+        function hideError() {
+            errorDiv.classList.add('hidden');
+        }
+
+        // Initial setup
+        toggleInputMethod();
+    </script>
+</body>
+</html>
